@@ -1,0 +1,10 @@
+base
+AppliedPredictiveModeling
+lattice
+ggplot2
+caret
+rattle
+pgmm
+ElemStatLearn
+rpart
+randomForest
