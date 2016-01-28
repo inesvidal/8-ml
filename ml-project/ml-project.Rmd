@@ -34,14 +34,48 @@ Apply your machine learning algorithm to the 20 test cases available in the test
 Reproducibility
 
 Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis.
-```{r}
-summary(cars)
+```{r, init, cache=TRUE, results='hide', echo=FALSE}
+library(knitr)
+library(caret)
+library(randomForest)
+setwd("~/Coursera/8-ml/ml-project")
 ```
 
-You can also embed plots, for example:
+```{r, load-data, cache=TRUE, echo=FALSE}
+url_train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url_test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 
-```{r, echo=FALSE}
-plot(cars)
+filename_train <- "pml-training.csv"
+filename_test <- "pml-testing.csv"
+if (!file.exists(filename_train)) {
+        print("INFO: csv file not found")
+        ### Getting the dataset, and unzipping the files
+        download.file(url_test, filename_train, method = "curl")
+        date_downloaded <- date()
+    }
+if (!file.exists(filename_test)) {
+        print("INFO: csv file not found")
+        ### Getting the dataset, and unzipping the files
+        download.file(url_test, filename_test, method = "curl")
+        date_downloaded <- date()
+    }
+
+#opening the data
+train <- read.csv(filename_train)
+test <- read.csv(filename_test)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r, explore, cache=TRUE, echo=FALSE}
+summary(train)
+dim(train)
+# identificar las variables que no tienen varianza (PCA?)
+
+
+fit1 <- randomForest(y = classe, x = train)
+```
+
+# 
+
+In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
