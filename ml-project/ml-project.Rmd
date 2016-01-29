@@ -71,7 +71,7 @@ dim(train)
 # identificar las variables que no tienen varianza (PCA?)
 
 
-fit1 <- randomForest(y = classe, x = train)
+#fit1 <- randomForest(y = classe, x = train)
 ```
 
 # 

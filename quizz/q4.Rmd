@@ -6,7 +6,7 @@ output: html_document
 ##1. 
 For this quiz we will be using several R packages. R package versions change over time, the right answers have been checked using the following versions of the packages.
 
-AppliedPredictiveModeling: v1.1.6
+AppliedPredictiveModeling: v1.1.6 
 caret: v6.0.47
 ElemStatLearn: v2012.04-0
 pgmm: v1.1
@@ -23,7 +23,7 @@ Load the vowel.train and vowel.test data sets:
 library(ElemStatLearn)
 library(caret)
 library(randomForest)
-data(vowel.train)
+data(vowel.train) 
 data(vowel.test)
 
 # Set the variable y to be a factor variable in both the training and test set. Then set the seed to 33833. Fit (1) a random forest predictor relating the factor variable y to the remaining variables and (2) a boosted predictor using the "gbm" method. Fit these both with the train() command in the caret package.
@@ -126,7 +126,7 @@ Agreement Accuracy = 0.6361
 ##2. 
 Load the Alzheimer's data using the following commands
 ```{r, cache=TRUE}
-library(caret)
+library(caret) 
 library(gbm)
 library(pander)
 library(xtable)
@@ -196,7 +196,7 @@ Load the concrete data with the commands:
 set.seed(3523)
 library(AppliedPredictiveModeling)
 library(dplyr)
-library(elasticnet)
+library(elasticnet) 
 data(concrete)
 inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
 training = concrete[ inTrain,]
@@ -249,7 +249,7 @@ total <- 0
 for (i in 1 : length(tstest)) {
     if (tstest[i] > tspred$lower[i] & tstest[i] < tspred$upper[i])
         agree <- agree + 1
-    total <- total + 1
+    total <- total + 1 
 }
 
 result <- agree/total
@@ -273,7 +273,7 @@ set.seed(3523)
 library(caret)
 library(AppliedPredictiveModeling)
 library(dplyr)
-library(e1071)
+library(e1071) 
 data(concrete)
 inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
 training = concrete[ inTrain,]
