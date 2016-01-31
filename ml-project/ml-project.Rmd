@@ -112,7 +112,7 @@ table <- xtable(
     matrix(c(dim(training), dim(testing), dim(training_cl), dim(train), dim(test), dim(validate)), 
            ncol = 6, byrow = FALSE,
            dimnames = list(c("Observations", "Variables"), c("Original training dataset", "Original testing","Clean Training dataset", "Train set", "Test set","Validate set"))),
-    caption = "Original datasets, and sets considered for the study",
+    caption = "**Table 1**: Original datasets, and sets considered for the study",
     auto = TRUE)
 #align = c("lll|lll"))
 panderOptions('table.split.table', Inf)
@@ -149,7 +149,7 @@ trainx <- train[inTrain2,]
 
 Considering the number of dark cells (high correlation),  a Principal Components analysis was considered as an option to help identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options.
 
-```{r, explore_pca_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+```{r, explore_pca_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8, warning=FALSE}
 x <- select(trainx, -classe)
 y <- trainx$classe
 z <- trainx
@@ -176,8 +176,8 @@ system.time({
     })
 ````
 
-```{r, explore_pca_rf2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-print("fit_pca_rf")
+```{r, explore_pca_rf2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8, warning=FALSE}
+
 system.time({
     fit_pca_rf2 <- train(y ~ ., data = z, method = "rf", preProcess = "pca", thresh =.98) # calculate PCs for test data    
     # compare results 
@@ -196,7 +196,7 @@ system.time({
 ````
 
 <------- pendiente revisar crosvarianza, se puede hacer dentro del random fores
-```{r, explore_fit_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+```{r, explore_fit_rf, cache=TRUE, echo=FALSE, fig.width=5, fig.height=5}
 print("fit_rf")
 system.time({fit_rf <- randomForest(classe ~., data = z)})
 cv <-rfcv(z, y)
@@ -204,7 +204,7 @@ with(cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
 
 print("fit_rf_caret con cv")
 system.time({fit_rf_caret <- train(classe ~., data = z, trControl=trainControl(method="cv",number=10, repeats=1))})
-print(fit_rf_caret$finalModel)
+#print(fit_rf_caret$finalModel)
 
 # predict for both cases
 pred_rf <- predict(fit_rf, test)
@@ -221,13 +221,17 @@ final_acc <- rbind(acc_pca_rf, acc_pca_rf2, acc_rpart, acc_rf, acc_pca_caret)
 The following options were considered for prediction, with the associated accuracies (1% sample):
 
 ```{r, model-selection, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-tab <- xtable(matrix(final_acc, ncol = 2, byrow = FALSE,
-          dimnames = list(c("PCA + random forest (randomForest)", "PCA + random forest (caret)", "tree (rpart)", "random forest (randomForest", "random Forest controlling cross variance (caret))", c("Accuracy")))),
-    caption = "Models accuracy comparison using 1% sample of 'train set'")
+# include model details in Accuracy summary table
+rownames(final_acc) <- c("PCA + random forest (randomForest)", "PCA + random forest (caret)", "tree (rpart)", "random forest (randomForest", "random Forest controlling cross variance (caret)")
+
+# visualize summary table
+tab <- xtable(final_acc,
+    caption = "**Table 2**: Models accuracy comparison using 1% sample of 'train set'",
+    align = c("lc"))
 panderOptions('table.split.table', Inf)
 pander(tab)
 ```
-```{r, validate, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+```{r, validate, cache=TRUE, echo=FALSE, fig.width=5, fig.height=5}
 # assuming fit_rf is the best
 system.time({fit_rf_total <- randomForest(train$classe ~., data = select(train, -classe))})
 #study of cross validation <- very time consuming
