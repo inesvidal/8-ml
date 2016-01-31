@@ -4,3 +4,15 @@ lattice
 ggplot2
 caret
 randomForest
+xtable
+markdown
+rmarkdown
+pander
+foreach
+iterators
+doMC
+rpart
+rattle
+dplyr
+YaleToolkit
+corrplot
