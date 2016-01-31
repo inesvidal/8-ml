@@ -67,13 +67,13 @@ clean <- function(x){
     # Unify blanks and #DIV/0! into NA
     print("x0:")
     print(dim(x))
-
+    
     x[x == "" | x == "#DIV/0!"] <- NA
     
     # remove variables/columns with over a certain % of NAs
     summary(colSums(is.na(x))/nrow(x)) # only a few collumns have a large number of NAs
     x <- x[colSums(is.na(x))/nrow(x) <.97]
-        
+    
     # remove observations/rows with over a certain % of NAs
     summary(rowSums(is.na(x))/ncol(x))
     
@@ -82,7 +82,7 @@ clean <- function(x){
         print("no NAs in x")
     return(x)
     }
-    
+
 
 # training_cl1 <- training
 # training_cl1[training_cl1 == "" |training_cl1 == "#DIV/0!" ] <- NA
@@ -141,9 +141,9 @@ test <- training_cl[-inTrain,]
 validate <- testing_cl
 
 ##############
-anyNA(train)
-anyNA(test)
-anyNA(validate)
+# anyNA(train)
+# anyNA(test)
+# anyNA(validate)
 table <- xtable(
     matrix(c(dim(training), dim(testing), dim(training_cl), dim(train), dim(test), dim(validate)), 
            ncol = 6, byrow = FALSE,
@@ -173,41 +173,65 @@ corrplot(cor, method="color", type = "lower", tl.srt=45, tl.cex =.7, tl.col="bla
 inTrain2 <- createDataPartition(y=train$classe, times = 1, p=0.01,list = FALSE)
 trainx <- train[inTrain2,]
 
-anyNA(trainx)
+# anyNA(trainx)
 
 
 ```
 
 Considering the number of dark cells, a Principal Components analysis can help us identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options. We combine the PCA preprocessing with a random forest model.
 ```{r, explore_pca_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-system.time({
-# create preprocess object
-preProc <- preProcess(select(train, -classe), method="pca", thresh =.98) # calculate PCs for training data
-train_pca <- predict(preProc, select(train, -classe))
-# run model on outcome and principle components
-fit_pca_rf <- train(train$classe ~ ., data = train_pca, method = "rf") # calculate PCs for test data
-pred_pca_rf <- predict(fit_pca_rf,select(test, -classe))
-# compare results 
-confusionMatrix(test$classe,pred_pca_rf)
-})
+# system.time({
+#     # create preprocess object
+#     preProc <- preProcess(select(train, -classe), method="pca", thresh =.98) # calculate PCs for training data
+#     })
+# system.time({
+#     train_pca <- predict(preProc, select(train, -classe))
+#     })
+# # run model on outcome and principle components
+# system.time({
+#     fit_pca_rf <- train(train$classe ~ ., data = train_pca, method = "rf") # calculate PCs for test data
+#     })
+# system.time({
+#     pred_pca_rf <- predict(fit_pca_rf,select(test, -classe))
+#     })
+# # compare results 
+# system.time({
+#     confusionMatrix(test$classe,pred_pca_rf)
+#     })
 ````
 
+```{r, explore_pca_rf2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+print("fit_pca_rf")
+train_p <- select(train, -classe)
+system.time({
+    fit_pca_rf <- train(train$classe ~ ., data = train_p, method = "rf", preProcess = "pca", thresh =.98) # calculate PCs for test data    
+    # compare results 
+    acc_pca_rf2 <- confusionMatrix(test$classe,predict(fit_pca_rf,select(test, -classe)))$overall[1]
+    })
+````
 
 <------- pendiente revisar crosvarianza, se puede hacer dentro del random fores
 ```{r, explore_fit_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-# fit using subset
-system.time({fit_rfx <- randomForest(classe ~., data = trainx)})
-system.time({fit_rf <- randomForest(classe ~., data = train)})
+train_p <- select(train, -classe)
+print("fit_rf")
+system.time({fit_rf <- randomForest(train$classe ~., data = train_p)})
+cv <-rfcv(train, train$classe)
+with(cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
+
+print("fit_rf_caret con cv")
 system.time({fit_rf_caret <- train(classe ~., data = train, trControl=trainControl(method="cv",number=10, repeats=1))})
+print(fit_rf_caret$finalModel)
 
 # predict for both cases
-pred_rfx <- predict(fit_rfx, test)
 pred_rf <- predict(fit_rf, test)
 pred_rf_caret <- predict(fit_rf_caret, test)
 # obtain accuracy
-confusionMatrix(pred_rfx, test$classe)$overall[1]
-confusionMatrix(pred_rf, test$classe)$overall[1]
-confusionMatrix(pred_rf_caret, test$classe)$overall[1]
+acc_rfx <- confusionMatrix(pred_rfx, test$classe)$overall[1]
+acc_pca_rf2 <- confusionMatrix(pred_rf, test$classe)$overall[1]
+acc_pca_caret <- confusionMatrix(pred_rf_caret, test$classe)$overall[1]
+
+final_acc <- rbind(acc_pca_rf2, acc_rfx, acc__rf, acc_rf_caret)
+
 ```
 ```{r, explore-data2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 
