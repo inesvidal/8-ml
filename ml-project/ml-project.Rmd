@@ -147,10 +147,7 @@ trainx <- train[inTrain2,]
 # anyNA(trainx)
 ```
 
-Considering the number of dark cells (high correlation), a Principal Components analysis can help us identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options. We combine the PCA preprocessing with a random forest model.
-
-We tested the accuracy of a number of models considering the 1% sample of the *train set* with the following results:
-
+Considering the number of dark cells (high correlation),  a Principal Components analysis was considered as an option to help identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options.
 
 ```{r, explore_pca_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 x <- select(trainx, -classe)
@@ -217,20 +214,18 @@ acc_rf <- confusionMatrix(pred_rf, test$classe)$overall[1]
 acc_pca_rf2 <- confusionMatrix(pred_rf, test$classe)$overall[1]
 acc_pca_caret <- confusionMatrix(pred_rf_caret, test$classe)$overall[1]
 
-final_acc <- rbind(acc_pca_rf, acc_pca_rf2, acc_rpart, acc_rf, acc_rf, acc_pca_caret)
+final_acc <- rbind(acc_pca_rf, acc_pca_rf2, acc_rpart, acc_rf, acc_pca_caret)
 
 ```
 
-
+The following options were considered for prediction, with the associated accuracies (1% sample):
 
 ```{r, model-selection, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-t <- xtable(final_acc,
-#     matrix(final_acc, 
-#            ncol = 2, byrow = FALSE,
-#            dimnames = list(NULL, NULL),
+tab <- xtable(matrix(final_acc, ncol = 2, byrow = FALSE,
+          dimnames = list(c("PCA + random forest (randomForest)", "PCA + random forest (caret)", "tree (rpart)", "random forest (randomForest", "random Forest controlling cross variance (caret))", c("Accuracy")))),
     caption = "Models accuracy comparison using 1% sample of 'train set'")
 panderOptions('table.split.table', Inf)
-pander(t)
+pander(tab)
 ```
 ```{r, validate, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 # assuming fit_rf is the best
