@@ -25,6 +25,10 @@ setwd("~/Coursera/8-ml/ml-project")
 set.seed(12345)
 #opts_chunk$set(echo = FALSE, cache = TRUE, fig.width=10, fig.height=6, fig.path='Figs/')#,warning=FALSE, message=FALSE, results='hide')
 ```
+## Executive Summary
+
+The HAR dataset contains measures of accelerometers worn by by six individuals while performing barbell lifts correctly and in five incorrect ways. Using this data we predict how well (in which manner) the exercise is done.
+The study starts by reducing the dataset dimension, keeping only relevant variables. Then, to be able to assess out of sample error, the training dataset is divided in two, *train* and *test*. Using a sample of the train dataset the relationships between variables are studied and several models tested (random tree, random forest with and without PCA) and the one with the highest accuracy (and reasonable performance) in the *test* dataset is selected.
 
 ```{r, load-data, cache=TRUE, echo=FALSE}
 url_train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
@@ -50,13 +54,10 @@ training <- read.csv(filename_train)
 testing <- read.csv(filename_test)
 ```
 
-
 ## Data cleaning
-First we review sparsity, and remove rows without any informed value and columns with over 95% uninformed values (they coincide with columns that are only recorded when variable *new_window*="yes"). 
-###---> not so clear
-Finally we exclude columns *row.names*, *X*, *user_name*, *raw_timestamp_part_1*, *raw_timestamp_part_2*, *cvtd_timestamp*, *new_window* and *num_window*, that are considered irrelevant to the experiment.
 
-### <------- revisar el tema de complete.cases, para dejarlo por encima de un umbral y rellenar los otros
+First we review sparsity, and remove rows without any informed value and columns with over 95% uninformed values (they coincide with columns that are only recorded when variable *new_window*="yes"). 
+Finally we exclude columns *row.names*, *X*, *user_name*, *raw_timestamp_part_1*, *raw_timestamp_part_2*, *cvtd_timestamp*, *new_window* and *num_window*, that are considered irrelevant to the experiment.
 
 ```{r, clean-data, cache=TRUE, echo=FALSE}
 # Prediction study design
@@ -65,73 +66,36 @@ Finally we exclude columns *row.names*, *X*, *user_name*, *raw_timestamp_part_1*
 #whatis(training_cl1)
 clean <- function(x){
     # Unify blanks and #DIV/0! into NA
-    print("x0:")
-    print(dim(x))
+    # print("x0:")
+    # print(dim(x))
     
     x[x == "" | x == "#DIV/0!"] <- NA
     
     # remove variables/columns with over a certain % of NAs
-    summary(colSums(is.na(x))/nrow(x)) # only a few collumns have a large number of NAs
+    # summary(colSums(is.na(x))/nrow(x)) # only a few collumns have a large number of NAs
     x <- x[colSums(is.na(x))/nrow(x) <.97]
     
     # remove observations/rows with over a certain % of NAs
-    summary(rowSums(is.na(x))/ncol(x))
+    # summary(rowSums(is.na(x))/ncol(x))
     
-    #check that all is fine
-    if(!anyNA(x)) 
-        print("no NAs in x")
+    # check that all is fine
+    # if(!anyNA(x)) 
+    #    print("no NAs in x")
     return(x)
     }
 
-
-# training_cl1 <- training
-# training_cl1[training_cl1 == "" |training_cl1 == "#DIV/0!" ] <- NA
-# testing_cl1 <- training
-# testing_cl1[training_cl1 == ""] <- NA
-# 
-# # Cleaning the dataset to remove irelevant observations (rows), e.g. all NAs, output(classe) = NA
-# training_cl2 <- training_cl1[!complete.cases(training_cl1),] #<---------
-# training_cl3 <- training_cl2[training_cl2$classe != "NA",]
-# 
-# testing_cl2 <- testing_cl1[!complete.cases(testing_cl1),] #<------
-# testing_cl3 <- testing_cl2[testing_cl2$classe != "NA",]
-# 
-# 
-# # Cleaning the dataset to remove irrelevant variables (columns), e.g. < 97% blanks or NAs, there are some columns that are always NA when the variable new_window = "no"
-# training_cl4 <- training_cl3
-# training_cl4 <- training_cl3[, colSums(is.na(training_cl3))/nrow(training_cl3) < .95]
-# training_cl5 <- dplyr::select(training_cl4, -X, -user_name, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
-# 
-# testing_cl4 <- testing_cl3
-# testing_cl4 <- testing_cl3[, colSums(is.na(testing_cl3))/nrow(testing_cl3) < .95]
-# # remove variables/columns considered irrelevant for study
-# testing_cl5 <- dplyr::select(testing_cl4, -X, -user_name, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
-
 training_cl <- clean(training)
 testing_cl <- clean(testing)
-dim(training_cl) 
-dim(testing_cl)
-
-
-# training_cl2 <- training[rbind(colnames(training[nearZeroVar(training, saveMetrics =TRUE, names = TRUE)$nzv]), "classe")]
-# training_cl2 <- clean2(training)
-# testing_cl2 <- clean2(testing)
-# dim(training_cl2) 
-# dim(testing_cl2)
-
+#dim(training_cl) 
+#dim(testing_cl)
 
 # remove variables/columns considered irrelevant for study
 testing_cl <- dplyr::select(testing_cl, -X, -user_name, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
 training_cl <- dplyr::select(training_cl, -X, -user_name, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
-
-dim(training_cl)
-# <----------- Esto se puede poner dentro de una función y llamarla  2 veces
-
 ```
 That leaves us with a smaller dataset (`r dim(training_cl)[1]` observations and `r dim(training_cl)[2]` variables), in principle equally relevant in modelling terms, and easier to work with in terms of performance.
 
 We decided to keep the test dataset for final validation, and subdivide the clean training set into a training set and a test set, so that we can assess out of sample error. The table below represents the different sets: 
-
 
 ```{r, prepare-data-sets, cache=TRUE, echo=FALSE}
 # Creating working sets
@@ -148,7 +112,7 @@ table <- xtable(
     matrix(c(dim(training), dim(testing), dim(training_cl), dim(train), dim(test), dim(validate)), 
            ncol = 6, byrow = FALSE,
            dimnames = list(c("Observations", "Variables"), c("Original training dataset", "Original testing","Clean Training dataset", "Train set", "Test set","Validate set"))),
-    caption = "Original datasets",
+    caption = "Original datasets, and sets considered for the study",
     auto = TRUE)
 #align = c("lll|lll"))
 panderOptions('table.split.table', Inf)
@@ -157,13 +121,20 @@ pander(table)
 
 ##Data Exploration
 
-Considering the *train set*, we'll start by checking the number of variables with zero variance (0). Then we study how interrelated variables are (see figure below):
-```{r, explore-data1, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+```{r, explore-data-var, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 # Study correlations between variables to select those most significant to predict classe
 # dim(train)
 # head(train)
 zero_var <- sum(nearZeroVar(select(train, -classe), saveMetrics =TRUE, names = TRUE)$nzv)
 
+```
+Considering the *train set*, we'll start by checking the number of variables with zero variance (zero_var). 
+
+Initial tests showed that execution times using the complete *train set* are very long, so we decided to proceed with a 1% sample (`dim(trainx)` observations), to assess model performance, and go ahead with final prediction only with the models that show good results,
+
+Then we study how interrelated variables are (see figure below):
+
+```{r, explore-data1, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 cor <- cor(select(train, -classe))
 corrplot(cor, method="color", type = "lower", tl.srt=45, tl.cex =.7, tl.col="black")
 
@@ -172,90 +143,107 @@ corrplot(cor, method="color", type = "lower", tl.srt=45, tl.cex =.7, tl.col="bla
 # getting a slice of the train dataset to optimise execution time in first trials
 inTrain2 <- createDataPartition(y=train$classe, times = 1, p=0.01,list = FALSE)
 trainx <- train[inTrain2,]
-
+#dim(trainx)
 # anyNA(trainx)
-
-
 ```
 
-Considering the number of dark cells, a Principal Components analysis can help us identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options. We combine the PCA preprocessing with a random forest model.
+Considering the number of dark cells (high correlation), a Principal Components analysis can help us identify the main variables to consider in the model, to reduce its complexity (and execution/training time). The negative values make a logaritmic transformation useless, so we proceed considering scaling and centering options. We combine the PCA preprocessing with a random forest model.
+
+We tested the accuracy of a number of models considering the 1% sample of the *train set* with the following results:
+
+
 ```{r, explore_pca_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-# system.time({
-#     # create preprocess object
-#     preProc <- preProcess(select(train, -classe), method="pca", thresh =.98) # calculate PCs for training data
-#     })
-# system.time({
-#     train_pca <- predict(preProc, select(train, -classe))
-#     })
-# # run model on outcome and principle components
-# system.time({
-#     fit_pca_rf <- train(train$classe ~ ., data = train_pca, method = "rf") # calculate PCs for test data
-#     })
-# system.time({
-#     pred_pca_rf <- predict(fit_pca_rf,select(test, -classe))
-#     })
-# # compare results 
-# system.time({
-#     confusionMatrix(test$classe,pred_pca_rf)
-#     })
+x <- select(trainx, -classe)
+y <- trainx$classe
+z <- trainx
+t <- test
+system.time({
+    # create preprocess object
+    preProc <- preProcess(x, method="pca", thresh =.98) # calculate PCs for training data
+    })
+system.time({
+    train_pca <- predict(preProc, x)
+    })
+#dim(preProc)
+#dim(train_pca)
+# run model on outcome and principle components
+system.time({
+    fit_pca_rf <- train(y ~ ., data = train_pca, method = "rf") # calculate PCs for test data
+    })
+system.time({
+    test_pca_rf <- predict(preProc, select(t, -classe))
+    })
+# compare results 
+system.time({
+    acc_pca_rf <- confusionMatrix(t$classe, predict(fit_pca_rf, test_pca_rf))$overall[1]
+    })
 ````
 
 ```{r, explore_pca_rf2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
 print("fit_pca_rf")
+system.time({
+    fit_pca_rf2 <- train(y ~ ., data = z, method = "rf", preProcess = "pca", thresh =.98) # calculate PCs for test data    
+    # compare results 
+    acc_pca_rf2 <- confusionMatrix(t$classe, predict(fit_pca_rf2, t))$overall[1]
+    })
+````
+
+```{r, explore_rpart, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+print("fit_rpart")
 train_p <- select(train, -classe)
 system.time({
-    fit_pca_rf <- train(train$classe ~ ., data = train_p, method = "rf", preProcess = "pca", thresh =.98) # calculate PCs for test data    
+    fit_rpart <- train(classe ~ ., data = trainx, method = "rpart")
     # compare results 
-    acc_pca_rf2 <- confusionMatrix(test$classe,predict(fit_pca_rf,select(test, -classe)))$overall[1]
+    acc_rpart <- confusionMatrix(test$classe,predict(fit_rpart,select(test, -classe)))$overall[1]
     })
 ````
 
 <------- pendiente revisar crosvarianza, se puede hacer dentro del random fores
 ```{r, explore_fit_rf, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-train_p <- select(train, -classe)
 print("fit_rf")
-system.time({fit_rf <- randomForest(train$classe ~., data = train_p)})
-cv <-rfcv(train, train$classe)
+system.time({fit_rf <- randomForest(classe ~., data = z)})
+cv <-rfcv(z, y)
 with(cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
 
 print("fit_rf_caret con cv")
-system.time({fit_rf_caret <- train(classe ~., data = train, trControl=trainControl(method="cv",number=10, repeats=1))})
+system.time({fit_rf_caret <- train(classe ~., data = z, trControl=trainControl(method="cv",number=10, repeats=1))})
 print(fit_rf_caret$finalModel)
 
 # predict for both cases
 pred_rf <- predict(fit_rf, test)
 pred_rf_caret <- predict(fit_rf_caret, test)
 # obtain accuracy
-acc_rfx <- confusionMatrix(pred_rfx, test$classe)$overall[1]
+acc_rf <- confusionMatrix(pred_rf, test$classe)$overall[1]
 acc_pca_rf2 <- confusionMatrix(pred_rf, test$classe)$overall[1]
 acc_pca_caret <- confusionMatrix(pred_rf_caret, test$classe)$overall[1]
 
-final_acc <- rbind(acc_pca_rf2, acc_rfx, acc__rf, acc_rf_caret)
+final_acc <- rbind(acc_pca_rf, acc_pca_rf2, acc_rpart, acc_rf, acc_rf, acc_pca_caret)
 
 ```
-```{r, explore-data2, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
-
-pr<-prcomp(trainy, scale = TRUE)
-plot(pr, type = "l")
-summary(pr)
-
-# g <- ggplot(pr, aes(y = mpg, x = am, color = am)) +
-#     geom_point(shape = 21, size = 3, fill ="darkblue") +
-#     scale_color_gradient(low="orange", high="green") +
-#     geom_smooth(method = lm, se = FALSE, colour = "black")  +
-#     xlab("transmission (0:auto)") + ylab("range (mpg)") +
-#     font_theme
-# g
-
-plot(pr, type = "l")
-
-#tree <- train(classe ~., method ="rpart", data = train)
-# fancyRpartPlot(tree$finalModel)
-
-#fit1 <- randomForest(y = train$classe, x = train)
 
 
-# train allows to specify how to deal with cross validation, document!!!!!!!!
+
+```{r, model-selection, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+t <- xtable(final_acc,
+#     matrix(final_acc, 
+#            ncol = 2, byrow = FALSE,
+#            dimnames = list(NULL, NULL),
+    caption = "Models accuracy comparison using 1% sample of 'train set'")
+panderOptions('table.split.table', Inf)
+pander(t)
+```
+```{r, validate, cache=TRUE, echo=FALSE, fig.width=8, fig.height=8}
+# assuming fit_rf is the best
+system.time({fit_rf_total <- randomForest(train$classe ~., data = select(train, -classe))})
+#study of cross validation <- very time consuming
+cv <-rfcv(train, train$classe)
+with(cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
+# study of out of sample error
+pred_rf_total <- predict(fit_rf_total, test)
+acc_rf_total <- confusionMatrix(pred_rf_total, test$classe)$overall[1]
+
+# predict results on validation set to submit assignment
+result <- predict(fit_rf_total, validate)
 
 ```
 
